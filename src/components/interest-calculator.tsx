@@ -411,7 +411,6 @@ const handleExportPdf = () => {
       
     // Add headers
     doc.setFontSize(16);
-    doc.text("H.S. TRADERS", doc.internal.pageSize.getWidth() / 2, 15, { align: "center" });
     doc.setFontSize(12);
     doc.text(
       `Copy of A/C of: ${result.partyName} From ${format(startDate, "dd/MM/yyyy")} TO ${format(result.asOfDate, "dd/MM/yyyy")}`,
