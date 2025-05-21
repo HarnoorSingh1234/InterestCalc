@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "postinstall": "echo 'Using legacy peer dependencies' && npm config set legacy-peer-deps=true"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",
