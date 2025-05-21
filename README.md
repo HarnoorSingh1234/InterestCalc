@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# RK Enterprises Interest Calculator
 
-## Getting Started
+![RK Enterprises Interest Calculator](https://i.imgur.com/xyzabc.png)
 
-First, run the development server:
+## 🌐 Live Demo
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Visit the live application at: [https://interest-calc-n91e.vercel.app/](https://interest-calc-n91e.vercel.app/)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 📋 Overview
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The RK Enterprises Interest Calculator is a specialized financial tool designed for tracking vouchers, calculating interest, and maintaining ledger records. This application helps businesses manage their financial records by automatically calculating interest on outstanding balances based on voucher entries.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🚀 Features
 
-## Learn More
+- **Voucher Management**: Add, edit, and delete vouchers with debit/credit entries
+- **Interest Calculation**: Automatically calculate interest on outstanding balances
+- **Date Range Filtering**: View calculations for specific time periods
+- **Export Options**: Generate PDF and Excel reports for your records
+- **Responsive Design**: Works seamlessly on desktop and mobile devices
+- **Dark/Light Mode**: Choose your preferred theme for better viewing experience
+- **Local Storage**: Data persists in your browser's local storage
 
-To learn more about Next.js, take a look at the following resources:
+## 🧭 Navigation Guide
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. **Home Page**: View a summary dashboard of all your vouchers and financial status.
+   - Click "Add Voucher" to create new voucher entries
+   - Click "Calculate Interest" to view interest calculations
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+2. **Add Voucher Page**: Create new voucher entries.
+   - Fill in the voucher details (number, date, amount, description)
+   - Select voucher type (Debit/Credit)
+   - Click "Add Voucher" to save
 
-## Deploy on Vercel
+3. **Calculate Interest Page**: View interest calculations for your vouchers.
+   - Set the calculation date (defaults to current date)
+   - Adjust interest rate as needed
+   - Review vouchers and their interest calculations
+   - Use the export buttons to generate PDF or Excel reports
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+4. **Settings Page**: Configure application settings.
+   - Set default interest rate
+   - Toggle between light and dark mode
+   - Clear local storage data if needed
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 💻 Technology Stack
+
+- **Framework**: Next.js 15.3.2
+- **UI Components**: Custom components with Tailwind CSS
+- **PDF Generation**: jsPDF and jsPDF-autotable
+- **Excel Export**: xlsx library
+- **Date Handling**: date-fns
+- **Local Storage**: Browser's localStorage API
+
+## 🚶‍♀️ Getting Started
+
+### Local Development
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/HarnoorSingh1234/InterestCalc.git
+   cd InterestCalc
