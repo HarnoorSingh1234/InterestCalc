@@ -1,6 +1,6 @@
-# RK Enterprises Interest Calculator
+# HS TRADERS Interest Calculator
 
-![RK Enterprises Interest Calculator](https://i.imgur.com/xyzabc.png)
+![HS TRADERS Interest Calculator](https://i.imgur.com/xyzabc.png)
 
 ## 🌐 Live Demo
 
