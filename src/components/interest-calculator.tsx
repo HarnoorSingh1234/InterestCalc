@@ -44,6 +44,7 @@ export function InterestCalculator() {
   const [interestRate, setInterestRate] = useState(18);
   const [result, setResult] = useState<CalculationResult | null>(null);
   const [isPrinting, setIsPrinting] = useState(false);
+    const [paymentRemainingAmounts, setPaymentRemainingAmounts] = useState<Record<string, number>>({});
 
   // Load settings from localStorage on component mount
   useEffect(() => {
@@ -56,156 +57,199 @@ export function InterestCalculator() {
     setInterestRate(storedInterestRate);
   }, []);
 
-  const handleCalculateInterest = () => {
-    try {
-      if (!partyName) {
-        toast.error("Error", {
-          description: "Please set a party name in the settings first"
-        });
-        return;
-      }
+ const handleCalculateInterest = () => {
+  try {
+    if (!partyName) {
+      toast.error("Error", {
+        description: "Please set a party name in the settings first"
+      });
+      return;
+    }
 
-      // Get vouchers from localStorage
-      const storedVouchers = JSON.parse(localStorage.getItem("vouchers") || "[]");
-      
-      if (storedVouchers.length === 0) {
-        toast.error("No vouchers found", {
-          description: "No vouchers found. Please add some vouchers first."
-        });
-        return;
-      }
+    // Get vouchers from localStorage
+    const storedVouchers = JSON.parse(localStorage.getItem("vouchers") || "[]");
+    
+    if (storedVouchers.length === 0) {
+      toast.error("No vouchers found", {
+        description: "No vouchers found. Please add some vouchers first."
+      });
+      return;
+    }
 
-      // Ensure vouchers have correct date format 
-      const parsedVouchers = storedVouchers.map((v: any) => ({
-        ...v,
-        voucherDate: new Date(v.voucherDate),
-      }));
-      
-      // Sort all vouchers by date (oldest first)
-      const allVouchers = [...parsedVouchers].sort((a, b) => 
-        new Date(a.voucherDate).getTime() - new Date(b.voucherDate).getTime()
-      );
+    // Ensure vouchers have correct date format 
+    const parsedVouchers = storedVouchers.map((v: any) => ({
+      ...v,
+      voucherDate: new Date(v.voucherDate),
+    }));
+    
+    // Sort all vouchers by date (oldest first)
+    const allVouchers = [...parsedVouchers].sort((a, b) => 
+      new Date(a.voucherDate).getTime() - new Date(b.voucherDate).getTime()
+    );
 
-      let totalDebit = 0;
-      let totalCredit = 0;
-      let totalInterest = 0;
+    let totalDebit = 0;
+    let totalCredit = 0;
+    let totalInterest = 0;
 
-      // Process vouchers and calculate interest
-      const debitVouchers = parsedVouchers.filter((v: Voucher) => v.type === "debit");
-      const creditVouchers = parsedVouchers.filter((v: Voucher) => v.type === "credit");
+    // Process vouchers and calculate interest
+    const debitVouchers = parsedVouchers.filter((v: Voucher) => v.type === "debit");
+    const creditVouchers = parsedVouchers.filter((v: Voucher) => v.type === "credit");
+    
+    // Calculate totals
+    debitVouchers.forEach((v: Voucher) => totalDebit += v.amount);
+    creditVouchers.forEach((v: Voucher) => totalCredit += v.amount);
+    
+    // Track remaining amount for each payment
+    const paymentTracking: Record<string, number> = {};
+    creditVouchers.forEach((v: Voucher) => {
+      paymentTracking[v.id] = v.amount;
+    });
+    
+    // Sort debit vouchers by date for processing
+    const sortedDebitVouchers = [...debitVouchers].sort((a, b) => 
+      new Date(a.voucherDate).getTime() - new Date(b.voucherDate).getTime()
+    );
+    
+    const processedDebitVouchers = sortedDebitVouchers.map((voucher: Voucher) => {
+      // Calculate due date
+      const dueDate = addDays(new Date(voucher.voucherDate), gracePeriod);
+    
+      // Find payments for this voucher with proper tracking
+      const payments: Array<Voucher & { appliedAmount: number }> = [];
+      let remainingToFind = voucher.amount;
       
-      // Calculate totals
-      debitVouchers.forEach((v: Voucher) => totalDebit += v.amount);
-      creditVouchers.forEach((v: Voucher) => totalCredit += v.amount);
+      // Consider only payments after this voucher date with remaining amounts
+        const eligiblePayments: Voucher[] = creditVouchers
+        .filter((p: Voucher) => p.voucherDate > voucher.voucherDate && paymentTracking[p.id] > 0)
+        .sort((a: Voucher, b: Voucher) => new Date(a.voucherDate).getTime() - new Date(b.voucherDate).getTime());
       
-      const processedDebitVouchers = debitVouchers.map((voucher: Voucher) => {
-        // Calculate due date
-        const dueDate = addDays(new Date(voucher.voucherDate), gracePeriod);
+      for (const payment of eligiblePayments) {
+        if (remainingToFind <= 0) break;
         
-        // Find payments for this voucher - include voucherNo in payment object
-        const payments = creditVouchers
-          .filter((v: Voucher) => 
-            v.voucherDate > voucher.voucherDate &&
-            v.description?.includes(voucher.voucherNo)
-          );
-          
-        // Process interest calculations
-        let interestAmount = 0;
-        let interestBreakdown = [];
+        // Use only the remaining amount of this payment
+        const availableAmount = paymentTracking[payment.id];
+        const paymentAmount = Math.min(availableAmount, remainingToFind);
         
-        let remainingAmount = voucher.amount;
-        let currentDate = dueDate;
-        
-        // If no payments and still unpaid
-        if (payments.length === 0 && asOfDate > dueDate) {
-          const days = differenceInDays(asOfDate, dueDate);
-          interestAmount = (remainingAmount * interestRate * days) / 365 / 100;
-          
-          interestBreakdown.push({
-            fromDate: dueDate,
-            toDate: asOfDate,
-            principal: remainingAmount,
-            days,
-            interestAmount,
+        if (paymentAmount > 0) {
+          payments.push({
+            ...payment,
+            appliedAmount: paymentAmount
           });
-        } else {
-          // Process each payment
-          for (const payment of payments) {
-            if (payment.voucherDate > dueDate && remainingAmount > 0) {
-              const days = differenceInDays(payment.voucherDate, currentDate);
-              const interestForPeriod = (remainingAmount * interestRate * days) / 365 / 100;
-              
-              interestBreakdown.push({
-                fromDate: currentDate,
-                toDate: payment.voucherDate,
-                principal: remainingAmount,
-                days,
-                interestAmount: interestForPeriod,
-              });
-              
-              interestAmount += interestForPeriod;
-              currentDate = payment.voucherDate;
-            }
-            
-            remainingAmount -= Math.min(payment.amount, remainingAmount);
-          }
           
-          // If still has remaining amount
-          if (remainingAmount > 0 && asOfDate > currentDate) {
-            const days = differenceInDays(asOfDate, currentDate);
+          // Update remaining amount for this payment
+          paymentTracking[payment.id] -= paymentAmount;
+          remainingToFind -= paymentAmount;
+        }
+      }
+
+      console.log(`- Found ${payments.length} payments:`);
+      payments.forEach(p => console.log(`  * ${format(p.voucherDate, "dd/MM/yyyy")}: ₹${p.appliedAmount} (from payment of ₹${p.amount})`));
+      
+      // Process interest calculations
+      let interestAmount = 0;
+      let interestBreakdown = [];
+      
+      let remainingAmount = voucher.amount;
+      let currentDate = dueDate;
+      
+      console.log(`Calculating interest for voucher ${voucher.voucherNo}:`);
+      
+      // If no payments and still unpaid
+      if (payments.length === 0 && asOfDate > dueDate) {
+        const days = differenceInDays(asOfDate, dueDate);
+        console.log(`- No payments, calculating for ${days} days on amount ₹${remainingAmount}`);
+        interestAmount = (remainingAmount * interestRate * days) / 365 / 100;
+        console.log(`- Interest for period: ₹${interestAmount.toFixed(2)}`);
+        
+        interestBreakdown.push({
+          fromDate: dueDate,
+          toDate: asOfDate,
+          principal: remainingAmount,
+          days,
+          interestAmount,
+        });
+      } else {
+        // Process each payment
+        for (const payment of payments) {
+          if (payment.voucherDate > dueDate && remainingAmount > 0) {
+            const days = differenceInDays(payment.voucherDate, currentDate);
+            console.log(`- Calculating interest from ${format(currentDate, "dd/MM/yyyy")} to ${format(payment.voucherDate, "dd/MM/yyyy")}`);
+            console.log(`- Days: ${days}, Amount: ₹${remainingAmount}`);
             const interestForPeriod = (remainingAmount * interestRate * days) / 365 / 100;
+            console.log(`- Interest for period: ₹${interestForPeriod.toFixed(2)}`);
             
             interestBreakdown.push({
               fromDate: currentDate,
-              toDate: asOfDate,
+              toDate: payment.voucherDate,
               principal: remainingAmount,
               days,
               interestAmount: interestForPeriod,
             });
             
             interestAmount += interestForPeriod;
+            currentDate = payment.voucherDate;
           }
+          
+          // Reduce remaining amount by the applied payment amount
+          remainingAmount -= payment.appliedAmount;
         }
         
-        totalInterest += interestAmount;
-        
-        return {
-          ...voucher,
-          payments,
-          dueDate,
-          interest: {
-            amount: interestAmount,
-            breakdown: interestBreakdown,
-          }
-        };
-      });
+        // If still has remaining amount
+        if (remainingAmount > 0 && asOfDate > currentDate) {
+          const days = differenceInDays(asOfDate, currentDate);
+          const interestForPeriod = (remainingAmount * interestRate * days) / 365 / 100;
+          
+          interestBreakdown.push({
+            fromDate: currentDate,
+            toDate: asOfDate,
+            principal: remainingAmount,
+            days,
+            interestAmount: interestForPeriod,
+          });
+          
+          interestAmount += interestForPeriod;
+        }
+      }
       
-      const calculationResult: CalculationResult = {
-        partyName,
-        asOfDate,
-        gracePeriod,
-        interestRate,
-        debitVouchers: processedDebitVouchers,
-        creditVouchers,
-        allVouchers,
-        totalDebit,
-        totalCredit,
-        totalInterest,
+      totalInterest += interestAmount;
+      
+      return {
+        ...voucher,
+        payments,
+        dueDate,
+        interest: {
+          amount: interestAmount,
+          breakdown: interestBreakdown,
+        }
       };
-      
-      setResult(calculationResult);
+    });
+    
+    const calculationResult: CalculationResult = {
+      partyName,
+      asOfDate,
+      gracePeriod,
+      interestRate,
+      debitVouchers: processedDebitVouchers,
+      creditVouchers,
+      allVouchers,
+      totalDebit,
+      totalCredit,
+      totalInterest,
+    };
+    
+    setResult(calculationResult);
 
-      toast.success("Interest calculated successfully", {
-        description: `Total interest: ₹${totalInterest.toFixed(2)}`
-      });
+    toast.success("Interest calculated successfully", {
+      description: `Total interest: ₹${totalInterest.toFixed(2)}`
+    });
 
-    } catch (error) {
-      toast.error("Calculation Error", {
-        description: error instanceof Error ? error.message : "Unknown error"
-      });
-      console.error("Calculation error:", error);
-    }
-  };
+  } catch (error) {
+    toast.error("Calculation Error", {
+      description: error instanceof Error ? error.message : "Unknown error"
+    });
+    console.error("Calculation error:", error);
+  }
+};
 
 // For the Excel export function (handleExportExcel)
 
