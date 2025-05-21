@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Moon, Sun, Settings, Calculator, Trash2 } from "lucide-react";
+import { Moon, Sun, Settings, Calculator, Trash2, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "next-themes";
 import { useState } from "react";
@@ -95,8 +95,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <main className="flex-1 container py-6">{children}</main>
       <footer className="border-t py-4">
         <div className="container text-center text-sm text-muted-foreground">
-          © {new Date().getFullYear()} RK Enterprises
-        </div>
+          © {new Date().getFullYear()} H.S. TRADERS
+        </div>            <Link
+                href="mailto:hstraders_amritsar@yahoo.com"
+                className="flex items-center justify-center text-sm text-muted-foreground hover:text-primary"   
+            >
+                <Mail className="mr-2 h-4 w-4" />
+                hstraders_amritsar@yahoo.com
+            </Link>
+    
       </footer>
 
       {/* Confirmation Dialog for clearing local storage */}
